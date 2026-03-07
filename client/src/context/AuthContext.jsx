@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import api from '../api/invoiceApi';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/login', { username, password });
+            const res = await api.post('/auth/login', { username, password });
             const data = res.data;
             setUser(data);
             localStorage.setItem('invoice_user', JSON.stringify(data));
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (username, password) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/register', { username, password });
+            const res = await api.post('/auth/register', { username, password });
             const data = res.data;
             setUser(data);
             localStorage.setItem('invoice_user', JSON.stringify(data));
