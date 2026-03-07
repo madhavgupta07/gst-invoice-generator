@@ -1,0 +1,15 @@
+{
+  "name": "gst-invoice-manager-mono",
+  "version": "1.0.0",
+  "description": "GST Invoice Management System (Full Stack)",
+  "scripts": {
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.1"
+  }
+}
