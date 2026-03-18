@@ -43,7 +43,7 @@ function generateInvoicePDF(invoice) {
 
         const drawGrid = () => {
             // Main Outer Box
-            doc.rect(X, Y, W, 770).stroke();
+            doc.rect(X, Y, W, 765).stroke();
 
             // 1. Title Row
             const r1 = 20;
@@ -211,7 +211,8 @@ function generateInvoicePDF(invoice) {
             doc.moveTo(cX[7], 560).lineTo(cX[7], 580).stroke();
 
             doc.font('Helvetica').fontSize(8).text("Total", cX[1] + 4, 566, { width: pCols[1] - 8, align: 'right' });
-            doc.font('Helvetica-Bold').text(totalQty, cX[3] + 2, 566, { width: pCols[3] - 4, align: 'right' });
+            const totalUnit = invoice.products[0]?.unit || '';
+            doc.font('Helvetica-Bold').text(totalQty + ' ' + totalUnit, cX[3] + 2, 566, { width: pCols[3] - 4, align: 'right' });
             doc.text("Rs. " + invoice.grandTotal.toFixed(2), cX[7] + 2, 566, { width: pCols[7] - 6, align: 'right' });
 
             // 5. Amount Chargeable
@@ -326,15 +327,14 @@ function generateInvoicePDF(invoice) {
             doc.text("We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.", X + 4, 725, { width: 250 });
 
             // Signature Box
-            doc.moveTo(X + (W / 2), 705).lineTo(XMid, 800).stroke(); // Removed center line in footer per design, but let's keep it to box the signature or just horizontal
+            doc.moveTo(XMid, 710).lineTo(XMid, 795).stroke();
 
-            // Actually, the Tally footer usually has a box around the declaration. 
-            doc.moveTo(X + (W / 2) - 20, 710).lineTo(X + W, 710).stroke();
+            doc.moveTo(XMid, 710).lineTo(X + W, 710).stroke();
             doc.font('Helvetica-Bold').text(`for ${invoice.seller.name || ''}`, XMid + 10, 715, { width: 250, align: 'right' });
 
             doc.font('Helvetica').text("Authorised Signatory", XMid + 10, 755, { width: 250, align: 'right' });
 
-            doc.fontSize(6).text("This is a Computer Generated Invoice", X, 775, { width: W, align: 'center' });
+            doc.fontSize(6).text("This is a Computer Generated Invoice", X, 797, { width: W, align: 'center' });
         };
 
         drawGrid();
