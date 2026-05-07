@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { invoiceApi } from '../api/invoiceApi';
+import { useState, useEffect } from 'react';
+import { invoiceApi, businessApi, receiverApi } from '../api/invoiceApi';
 import toast from 'react-hot-toast';
 
 function Field({ label, value, onChange, placeholder, type = 'text', required = false }) {
@@ -38,8 +38,76 @@ export default function InvoiceForm({
     invoiceNumber, setInvoiceNumber, invoiceDate, setInvoiceDate,
     dispatchInfo, setDispatchInfo
 }) {
-    const [verifyingTarget, setVerifyingTarget] = useState(null); // 'seller' | 'buyer'
-    const [captchaDialog, setCaptchaDialog] = useState(null); // { sessionId, image, input, loading, target }
+    const [verifyingTarget, setVerifyingTarget] = useState(null);
+    const [captchaDialog, setCaptchaDialog] = useState(null);
+
+    // Business profiles
+    const [businesses, setBusinesses] = useState([]);
+    const [selectedBusinessId, setSelectedBusinessId] = useState('');
+
+    // Saved receivers
+    const [receivers, setReceivers] = useState([]);
+    const [receiverSearch, setReceiverSearch] = useState('');
+    const [showReceiverList, setShowReceiverList] = useState(false);
+
+    // Load businesses on mount
+    useEffect(() => {
+        businessApi.list().then(data => {
+            setBusinesses(data);
+            // Auto-select default business if seller is still the placeholder
+            const defaultBiz = data.find(b => b.isDefault);
+            if (defaultBiz && (!seller.gstin && seller.name === 'Your Business Name')) {
+                setSeller({
+                    name: defaultBiz.name,
+                    address: defaultBiz.address,
+                    gstin: defaultBiz.gstin,
+                    state: defaultBiz.state,
+                    stateCode: defaultBiz.stateCode,
+                });
+                setSelectedBusinessId(defaultBiz._id);
+            }
+        }).catch(() => {});
+    }, []);
+
+    // Load receivers on mount
+    useEffect(() => {
+        receiverApi.list().then(setReceivers).catch(() => {});
+    }, []);
+
+    // Search receivers with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            receiverApi.list(receiverSearch).then(setReceivers).catch(() => {});
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [receiverSearch]);
+
+    const handleBusinessSelect = (id) => {
+        setSelectedBusinessId(id);
+        if (!id) return;
+        const biz = businesses.find(b => b._id === id);
+        if (biz) {
+            setSeller({
+                name: biz.name,
+                address: biz.address,
+                gstin: biz.gstin,
+                state: biz.state,
+                stateCode: biz.stateCode,
+            });
+        }
+    };
+
+    const handleReceiverSelect = (rec) => {
+        setBuyer({
+            name: rec.name,
+            address: rec.address,
+            gstin: rec.gstin,
+            state: rec.state,
+            stateCode: rec.stateCode,
+        });
+        setShowReceiverList(false);
+        setReceiverSearch('');
+    };
 
     const updateSeller = (field, value) => setSeller(prev => ({ ...prev, [field]: value }));
     const updateBuyer = (field, value) => setBuyer(prev => ({ ...prev, [field]: value }));
@@ -60,7 +128,6 @@ export default function InvoiceForm({
         }
         setVerifyingTarget(target);
         try {
-            // First try the API (if configured)
             const result = await invoiceApi.verifyGst(gstinToVerify);
             if (result.valid) {
                 applyGstResult(target, result);
@@ -68,7 +135,6 @@ export default function InvoiceForm({
                 return setVerifyingTarget(null);
             }
 
-            // If API not configured or failed, switch to CAPTCHA flow
             const captchaData = await invoiceApi.getCaptcha();
             if (captchaData.error) {
                 toast.error(captchaData.error);
@@ -130,18 +196,15 @@ export default function InvoiceForm({
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* Basic Meta */}
                     <Field label="Invoice Number *" value={invoiceNumber} onChange={setInvoiceNumber} placeholder="INV-001" required />
                     <Field label="Invoice Date *" value={invoiceDate} onChange={setInvoiceDate} type="date" required />
                     <Field label="e-Way Bill No" value={dispatchInfo.eWayBillNo} onChange={v => updateDispatch('eWayBillNo', v)} placeholder="e-Way Bill No." />
 
-                    {/* References */}
                     <Field label="Reference No & Date" value={dispatchInfo.referenceNo} onChange={v => updateDispatch('referenceNo', v)} placeholder="Ref No / Date" />
                     <Field label="Other References" value={dispatchInfo.otherReferences} onChange={v => updateDispatch('otherReferences', v)} />
                     <Field label="Buyer's Order No" value={dispatchInfo.buyersOrderNo} onChange={v => updateDispatch('buyersOrderNo', v)} />
                     <Field label="Order Date" value={dispatchInfo.buyersOrderDate} onChange={v => updateDispatch('buyersOrderDate', v)} type="date" />
 
-                    {/* Dispatch/Transport */}
                     <Field label="Dispatch Doc No" value={dispatchInfo.dispatchDocNo} onChange={v => updateDispatch('dispatchDocNo', v)} />
                     <Field label="Delivery Note Date" value={dispatchInfo.deliveryNoteDate} onChange={v => updateDispatch('deliveryNoteDate', v)} type="date" />
                     <Field label="Dispatched Through" value={dispatchInfo.dispatchedThrough} onChange={v => updateDispatch('dispatchedThrough', v)} placeholder="eg. Courier, Rail" />
@@ -159,6 +222,23 @@ export default function InvoiceForm({
                 {/* Seller */}
                 <div className="glass-card p-5">
                     <h3 className="text-sm font-semibold text-gray-300 mb-4">Seller Details</h3>
+
+                    {/* Business Selector */}
+                    {businesses.length > 0 && (
+                        <div className="mb-4">
+                            <label className="form-label">Select Business</label>
+                            <select value={selectedBusinessId} onChange={e => handleBusinessSelect(e.target.value)}
+                                className="form-input">
+                                <option value="">— Manual Entry —</option>
+                                {businesses.map(b => (
+                                    <option key={b._id} value={b._id}>
+                                        {b.name} {b.isDefault ? '★' : ''} {b.gstin ? `(${b.gstin})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="space-y-3">
                         <Field label="Business Name *" value={seller.name} onChange={v => updateSeller('name', v)} required />
                         <Field label="Address" value={seller.address} onChange={v => updateSeller('address', v)} />
@@ -227,6 +307,45 @@ export default function InvoiceForm({
                     <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center justify-between">
                         <span>Buyer (Bill To)</span>
                     </h3>
+
+                    {/* Saved Receiver Selector */}
+                    {receivers.length > 0 && (
+                        <div className="mb-4 relative">
+                            <label className="form-label">Select from saved</label>
+                            <input type="text"
+                                value={receiverSearch}
+                                onChange={e => { setReceiverSearch(e.target.value); setShowReceiverList(true); }}
+                                onFocus={() => setShowReceiverList(true)}
+                                placeholder="Search receivers by name or GSTIN..."
+                                className="form-input"
+                            />
+                            {showReceiverList && (
+                                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-[#1e1b4b] border border-white/10 rounded-xl shadow-2xl">
+                                    {receivers.filter(r =>
+                                        !receiverSearch ||
+                                        r.name.toLowerCase().includes(receiverSearch.toLowerCase()) ||
+                                        r.gstin?.toLowerCase().includes(receiverSearch.toLowerCase())
+                                    ).map(r => (
+                                        <button key={r._id} type="button"
+                                            onClick={() => handleReceiverSelect(r)}
+                                            className="w-full text-left px-3 py-2 hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0">
+                                            <p className="text-sm text-gray-200 font-medium">{r.name}</p>
+                                            <p className="text-xs text-gray-500">{r.gstin || 'No GSTIN'} &middot; {r.state || 'No state'}</p>
+                                        </button>
+                                    ))}
+                                    {receivers.length === 0 && (
+                                        <p className="px-3 py-2 text-xs text-gray-500">No receivers found</p>
+                                    )}
+                                    <button type="button"
+                                        onClick={() => setShowReceiverList(false)}
+                                        className="w-full text-center px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 border-t border-white/5">
+                                        Close
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="space-y-3">
                         <div>
                             <label className="form-label">GSTIN</label>

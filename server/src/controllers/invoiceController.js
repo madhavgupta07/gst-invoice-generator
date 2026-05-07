@@ -6,6 +6,7 @@ const Invoice = require('../models/Invoice');
 const { calculateInvoice } = require('../services/gstService');
 const { generateInvoicePDF } = require('../services/pdfService');
 const { getCaptcha, verifyWithCaptcha, verifyGSTIN } = require('../services/gstVerify');
+const { upsertReceiver } = require('./receiverController');
 const path = require('path');
 const fs = require('fs');
 
@@ -65,6 +66,9 @@ async function createInvoice(req, res, next) {
         const pdfPath = await generateInvoicePDF(invoice);
         invoice.pdfUrl = `/api/invoices/${invoice._id}/pdf`;
         await invoice.save();
+
+        // Auto-save buyer as a receiver for future use
+        await upsertReceiver(req.user.id, buyer);
 
         res.status(201).json(invoice);
     } catch (error) {
@@ -174,6 +178,9 @@ async function updateInvoice(req, res, next) {
 
         // Regenerate PDF
         await generateInvoicePDF(invoice);
+
+        // Auto-save buyer as a receiver for future use
+        if (req.body.buyer) await upsertReceiver(req.user.id, invoice.buyer);
 
         res.json(invoice);
     } catch (error) {

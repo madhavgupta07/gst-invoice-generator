@@ -15,7 +15,11 @@ app.use(express.json({ limit: '10mb' }));
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
+const businessRoutes = require('./routes/businessRoutes');
+const receiverRoutes = require('./routes/receiverRoutes');
 app.use('/api/auth', authRoutes);
+app.use('/api/businesses', businessRoutes);
+app.use('/api/receivers', receiverRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
 // GST verify route alias

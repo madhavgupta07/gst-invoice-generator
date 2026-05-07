@@ -1,9 +1,20 @@
 import { calculateGST, amountInWords } from '../utils/gstCalc';
 
 export default function InvoicePreview({ seller, buyer, consignee, products, invoiceNumber, invoiceDate, dispatchInfo }) {
+    // Guard against empty/invalid data
+    const safeProducts = (products || []).map(p => ({
+        ...p,
+        name: p.name || '',
+        quantity: parseFloat(p.quantity) || 0,
+        rate: parseFloat(p.rate) || 0,
+        taxPercent: parseFloat(p.taxPercent) || 0,
+        unit: p.unit || 'PCS',
+        hsnCode: p.hsnCode || '',
+    }));
+
     // Fallback consignee to buyer if empty
     const shipTo = consignee?.name ? consignee : buyer;
-    const tax = calculateGST(products, seller?.stateCode, buyer?.stateCode);
+    const tax = calculateGST(safeProducts, seller?.stateCode, buyer?.stateCode);
     const words = amountInWords(tax.grandTotal);
 
     const formatDate = (dateString) => {

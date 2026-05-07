@@ -6,6 +6,7 @@ import InvoiceList from './pages/InvoiceList';
 import EditInvoice from './pages/EditInvoice';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -53,6 +54,7 @@ function AppContent() {
                             <div className="flex items-center gap-2 mr-2">
                                 <NavLink to="/">Dashboard</NavLink>
                                 <NavLink to="/create">New Invoice</NavLink>
+                                <NavLink to="/settings">Settings</NavLink>
                             </div>
                             <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
                             <div className="flex items-center gap-3">
@@ -81,6 +83,7 @@ function AppContent() {
                     <Route path="/" element={<ProtectedRoute><InvoiceList /></ProtectedRoute>} />
                     <Route path="/create" element={<ProtectedRoute><CreateInvoice /></ProtectedRoute>} />
                     <Route path="/edit/:id" element={<ProtectedRoute><EditInvoice /></ProtectedRoute>} />
+                    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

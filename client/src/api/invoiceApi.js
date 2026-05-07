@@ -52,4 +52,17 @@ export const invoiceApi = {
         api.post('/gst/verify-captcha', { sessionId, gstin, captcha }).then(r => r.data),
 };
 
+export const businessApi = {
+    list: () => api.get('/businesses').then(r => r.data),
+    create: (data) => api.post('/businesses', data).then(r => r.data),
+    update: (id, data) => api.put(`/businesses/${id}`, data).then(r => r.data),
+    delete: (id) => api.delete(`/businesses/${id}`).then(r => r.data),
+    setDefault: (id) => api.put(`/businesses/${id}/default`).then(r => r.data),
+};
+
+export const receiverApi = {
+    list: (search = '') => api.get('/receivers', { params: { search } }).then(r => r.data),
+    delete: (id) => api.delete(`/receivers/${id}`).then(r => r.data),
+};
+
 export default api;
